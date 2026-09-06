@@ -173,18 +173,64 @@ class SurveyApp {
     }
 
     /**
+     * Determine if a question should be displayed based on branching logic
+     */
+    shouldShowQuestion(question) {
+        // Parent questions or always_show questions are always displayed
+        if (!question.parent_question_id || question.branch_type === 'always_show') {
+            return true;
+        }
+
+        // For conditional questions, check if parent was answered with "Yes"
+        if (question.branch_type === 'conditional') {
+            const parentQuestion = this.questions.find(q => q.question_id === question.parent_question_id);
+            if (!parentQuestion) return false;
+
+            const parentResponse = this.responses[question.parent_question_id];
+            
+            // Check if parent answer equals show_if_answer value
+            if (question.show_if_answer === 'Yes') {
+                return parentResponse === 'Yes';
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get only the questions that should be displayed
+     */
+    getVisibleQuestions() {
+        return this.questions.filter(q => this.shouldShowQuestion(q));
+    }
+
+    /**
+     * Get current visible question index
+     */
+    getCurrentVisibleQuestion() {
+        const visibleQuestions = this.getVisibleQuestions();
+        if (this.currentQuestionIndex < 0 || this.currentQuestionIndex >= visibleQuestions.length) {
+            return null;
+        }
+        return visibleQuestions[this.currentQuestionIndex];
+    }
+
+    /**
      * Render current question
      */
     renderCurrentQuestion() {
-        if (this.currentQuestionIndex < 0 || this.currentQuestionIndex >= this.questions.length) {
+        const visibleQuestions = this.getVisibleQuestions();
+        
+        if (this.currentQuestionIndex < 0 || this.currentQuestionIndex >= visibleQuestions.length) {
             return;
         }
 
         const container = document.getElementById('questions-container');
         container.innerHTML = '';
 
-        const question = this.questions[this.currentQuestionIndex];
-        const questionElement = this.createQuestionElement(question);
+        const question = visibleQuestions[this.currentQuestionIndex];
+        const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
         container.appendChild(questionElement);
 
         this.updateProgressBar();
@@ -199,15 +245,15 @@ class SurveyApp {
     /**
      * Create question element
      */
-    createQuestionElement(question) {
+    createQuestionElement(question, currentIndex, totalVisible) {
         const group = document.createElement('div');
         group.className = 'question-group';
 
-        const questionNum = this.currentQuestionIndex + 1;
+        const questionNum = currentIndex + 1;
         const questionLabel = document.createElement('label');
         questionLabel.className = 'question-label';
         questionLabel.innerHTML = `
-            <div class="question-number">Question ${questionNum}</div>
+            <div class="question-number">Question ${questionNum} of ${totalVisible}</div>
             <div>${this.escapeHtml(question.question_text)}</div>
         `;
         group.appendChild(questionLabel);
@@ -241,13 +287,21 @@ class SurveyApp {
      * Create Likert scale options
      */
     createLikertOptions(container, question) {
-        const options = question.answer_options || ['1', '2', '3', '4', '5'];
-        const labels = ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'];
+        let options = question.answer_options;
+        
+        // Parse JSON array if it's a string
+        if (typeof options === 'string') {
+            try {
+                options = JSON.parse(options);
+            } catch (e) {
+                options = [];
+            }
+        }
 
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'likert-options';
 
-        options.forEach((option, index) => {
+        options.forEach((option) => {
             const label = document.createElement('label');
             
             const input = document.createElement('input');
@@ -257,11 +311,13 @@ class SurveyApp {
             input.required = question.is_required;
             input.addEventListener('change', () => {
                 this.responses[question.question_id] = option;
+                // Re-render to show/hide conditional questions
+                this.renderCurrentQuestion();
             });
 
             const optionLabel = document.createElement('div');
             optionLabel.className = 'likert-option';
-            optionLabel.textContent = labels[index] || option;
+            optionLabel.textContent = option;
 
             label.appendChild(input);
             label.appendChild(optionLabel);
@@ -275,7 +331,16 @@ class SurveyApp {
      * Create checkbox options (multiple choice)
      */
     createCheckboxOptions(container, question) {
-        const options = question.answer_options || [];
+        let options = question.answer_options;
+        
+        // Parse JSON array if it's a string
+        if (typeof options === 'string') {
+            try {
+                options = JSON.parse(options);
+            } catch (e) {
+                options = [];
+            }
+        }
 
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'checkbox-options';
@@ -290,6 +355,8 @@ class SurveyApp {
             input.value = option;
             input.addEventListener('change', () => {
                 this.updateMultipleChoiceResponse(question.question_id);
+                // Re-render to show/hide conditional questions
+                this.renderCurrentQuestion();
             });
 
             label.appendChild(input);
@@ -376,7 +443,8 @@ class SurveyApp {
      * Navigate to next question
      */
     nextQuestion() {
-        if (this.currentQuestionIndex < this.questions.length - 1) {
+        const visibleQuestions = this.getVisibleQuestions();
+        if (this.currentQuestionIndex < visibleQuestions.length - 1) {
             this.currentQuestionIndex++;
             this.renderCurrentQuestion();
         }
@@ -396,20 +464,23 @@ class SurveyApp {
      * Update progress bar
      */
     updateProgressBar() {
-        const progress = ((this.currentQuestionIndex + 1) / this.questions.length) * 100;
+        const visibleQuestions = this.getVisibleQuestions();
+        const progress = visibleQuestions.length > 0 ? 
+            ((this.currentQuestionIndex + 1) / visibleQuestions.length) * 100 : 0;
         const progressFill = document.getElementById('progress-fill');
         const currentQuestion = document.getElementById('current-question');
         const totalQuestions = document.getElementById('total-questions');
 
         if (progressFill) progressFill.style.width = progress + '%';
         if (currentQuestion) currentQuestion.textContent = this.currentQuestionIndex + 1;
-        if (totalQuestions) totalQuestions.textContent = this.questions.length;
+        if (totalQuestions) totalQuestions.textContent = visibleQuestions.length;
     }
 
     /**
      * Update navigation buttons
      */
     updateNavigationButtons() {
+        const visibleQuestions = this.getVisibleQuestions();
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
         const submitBtn = document.getElementById('submit-btn');
@@ -418,7 +489,7 @@ class SurveyApp {
             prevBtn.classList.toggle('hidden', this.currentQuestionIndex === 0);
         }
 
-        const isLastQuestion = this.currentQuestionIndex === this.questions.length - 1;
+        const isLastQuestion = this.currentQuestionIndex === visibleQuestions.length - 1;
 
         if (nextBtn) {
             nextBtn.classList.toggle('hidden', isLastQuestion);
@@ -479,7 +550,9 @@ class SurveyApp {
      * Validate all responses
      */
     validateResponses() {
-        for (const question of this.questions) {
+        // Only validate visible questions
+        const visibleQuestions = this.getVisibleQuestions();
+        for (const question of visibleQuestions) {
             if (question.is_required && !this.responses[question.question_id]) {
                 return false;
             }
