@@ -50,7 +50,8 @@ class SurveyApp {
         if (tokenParam) {
             this.token = tokenParam;
             console.log('Token found in URL:', this.token);
-            // Wait for landing page animation to complete (8.6s) before validating
+            // Wait for landing page animation to complete fully (10.6s: 600ms delay + 8600ms duration + 1400ms transition)
+            // This allows both intro and identity sections to display
             setTimeout(() => this.validateToken(), 9000);
         }
     }
