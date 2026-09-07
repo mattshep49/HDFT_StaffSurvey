@@ -62,9 +62,20 @@ class SurveyApp {
         const landing = document.getElementById('landing');
         if (landing) {
             console.log('Closing landing page');
+            console.log('Landing element before changes:', {
+                display: window.getComputedStyle(landing).display,
+                visibility: window.getComputedStyle(landing).visibility,
+                zIndex: window.getComputedStyle(landing).zIndex
+            });
+            
             landing.classList.add('leaving');
             setTimeout(() => {
                 landing.classList.add('hidden');
+                console.log('Landing element after hidden class:', {
+                    display: window.getComputedStyle(landing).display,
+                    visibility: window.getComputedStyle(landing).visibility,
+                    zIndex: window.getComputedStyle(landing).zIndex
+                });
                 // Load survey after landing page is hidden
                 this.loadSurvey();
             }, 650);
@@ -252,6 +263,13 @@ class SurveyApp {
 
         const container = document.getElementById('questions-container');
         console.log('Container element:', container);
+        console.log('Container computed style:', container ? {
+            display: window.getComputedStyle(container).display,
+            visibility: window.getComputedStyle(container).visibility,
+            height: window.getComputedStyle(container).height,
+            width: window.getComputedStyle(container).width,
+            backgroundColor: window.getComputedStyle(container).backgroundColor
+        } : 'not found');
         
         if (!container) {
             console.error('questions-container not found!');
@@ -264,8 +282,11 @@ class SurveyApp {
         console.log('Rendering question:', question.question_id, question.question_text);
         
         const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
+        console.log('Question element created:', questionElement);
+        
         container.appendChild(questionElement);
         console.log('Question element appended to container');
+        console.log('Container innerHTML length:', container.innerHTML.length);
 
         this.updateProgressBar();
         this.updateNavigationButtons();
@@ -656,6 +677,12 @@ class SurveyApp {
         if (appContainer) {
             console.log('Setting app container display to block');
             appContainer.style.display = 'block';
+            console.log('App container computed style:', {
+                display: window.getComputedStyle(appContainer).display,
+                visibility: window.getComputedStyle(appContainer).visibility,
+                height: window.getComputedStyle(appContainer).height,
+                zIndex: window.getComputedStyle(appContainer).zIndex
+            });
         } else {
             console.error('app container not found!');
         }
@@ -673,7 +700,15 @@ class SurveyApp {
         });
 
         if (tokenEntry) tokenEntry.classList.add('hidden');
-        if (surveyPage) surveyPage.classList.remove('hidden');
+        if (surveyPage) {
+            surveyPage.classList.remove('hidden');
+            console.log('Survey page computed style after unhiding:', {
+                display: window.getComputedStyle(surveyPage).display,
+                visibility: window.getComputedStyle(surveyPage).visibility,
+                height: window.getComputedStyle(surveyPage).height,
+                zIndex: window.getComputedStyle(surveyPage).zIndex
+            });
+        }
         if (thankYouPage) thankYouPage.classList.add('hidden');
         if (errorPage) errorPage.classList.add('hidden');
 
