@@ -23,7 +23,14 @@ class SurveyApp {
         // Landing page button
         const continueBtn = document.getElementById('continue-intro');
         if (continueBtn) {
-            continueBtn.addEventListener('click', () => this.closeLandingPage());
+            continueBtn.addEventListener('click', () => {
+                // If token in URL, validate it; otherwise just proceed to survey
+                if (this.token) {
+                    this.validateToken();
+                } else {
+                    this.closeLandingPage();
+                }
+            });
         }
 
         // Survey form
@@ -50,9 +57,8 @@ class SurveyApp {
         if (tokenParam) {
             this.token = tokenParam;
             console.log('Token found in URL:', this.token);
-            // Wait for landing page animation to complete fully (10.6s: 600ms delay + 8600ms duration + 1400ms transition)
-            // This allows both intro and identity sections to display
-            setTimeout(() => this.validateToken(), 9000);
+            // Don't auto-validate - let landing page animate and user clicks "Begin the survey"
+            // The continue-intro button click will trigger validation
         }
     }
 
