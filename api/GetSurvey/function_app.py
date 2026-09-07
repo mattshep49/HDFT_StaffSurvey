@@ -2,6 +2,11 @@ import azure.functions as func
 import json
 import logging
 import os
+import sys
+
+# Add parent directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from app.fabric_connector import FabricLakehouseConnector
 
 def main(req: func.HttpRequest) -> func.HttpResponse:

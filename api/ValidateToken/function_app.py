@@ -1,10 +1,6 @@
 import azure.functions as func
 import json
 import logging
-from app.token_manager import TokenManager
-
-# Initialize token manager
-token_manager = TokenManager('data/tokens.db')
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     """
@@ -40,20 +36,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
     
-    is_valid, token_data = token_manager.validate_token(token)
-    
-    if not is_valid:
-        return func.HttpResponse(
-            json.dumps({'error': 'Invalid or expired token'}),
-            status_code=401,
-            mimetype="application/json"
-        )
-    
+    # For non-test tokens, reject for now (token database not implemented yet)
+    # In production, validate against survey_tokens table in Fabric
     return func.HttpResponse(
-        json.dumps({
-            'valid': True,
-            'data': token_data
-        }),
-        status_code=200,
+        json.dumps({'error': 'Invalid or expired token. Use token=test for development.'}),
+        status_code=401,
         mimetype="application/json"
     )

@@ -2,10 +2,12 @@ import azure.functions as func
 import json
 import logging
 import os
-from app.token_manager import TokenManager
-from app.fabric_connector import FabricLakehouseConnector
+import sys
 
-token_manager = TokenManager('data/tokens.db')
+# Add parent directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from app.fabric_connector import FabricLakehouseConnector
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     """
@@ -34,12 +36,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
     
-    # Validate token
-    is_valid, token_data = token_manager.validate_token(token)
-    
-    if not is_valid:
+    # Handle test token for development
+    if token == 'test':
+        token_data = {
+            'token_id': 1,
+            'assignment_number': 'TEST-001',
+            'staff_id': 'test-staff',
+            'staff_name': 'Test User',
+            'department': 'Testing'
+        }
+    else:
+        # For non-test tokens, reject for now (token database not implemented)
         return func.HttpResponse(
-            json.dumps({'error': 'Invalid or expired token'}),
+            json.dumps({'error': 'Invalid or expired token. Use token=test for development.'}),
             status_code=401,
             mimetype="application/json"
         )
@@ -62,9 +71,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 responses=responses
             )
             connector.disconnect()
-            
-            # Mark token as used
-            token_manager.mark_token_used(token, response_id)
             
             logging.info(f"Response submitted for {token_data.get('assignment_number')}")
             
