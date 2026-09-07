@@ -12,12 +12,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('GetSurvey function triggered')
     
     try:
-        # Initialize Fabric connector
+        # Initialize Fabric connector with service principal
         connector = FabricLakehouseConnector(
             server=os.getenv('FABRIC_SQL_SERVER'),
             database=os.getenv('FABRIC_LAKEHOUSE_NAME'),
             username=os.getenv('FABRIC_SQL_USER'),
-            password=os.getenv('FABRIC_SQL_PASSWORD')
+            password=os.getenv('FABRIC_SQL_PASSWORD'),
+            tenant_id=os.getenv('FABRIC_TENANT_ID')
         )
         
         if not connector.connect():

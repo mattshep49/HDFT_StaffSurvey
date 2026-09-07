@@ -16,20 +16,22 @@ class FabricLakehouseConnector:
     """Connects to Fabric Lakehouse using SQL endpoint"""
     
     def __init__(self, server: str = None, database: str = None, 
-                 username: str = None, password: str = None):
+                 username: str = None, password: str = None, tenant_id: str = None):
         """
         Initialize Lakehouse connector
         
         Args:
             server: SQL endpoint server (e.g., fabric-workspace.database.windows.net)
             database: Lakehouse name (e.g., Staff_survey_HDFT)
-            username: Username
-            password: Password
+            username: Username (or app_id for service principal)
+            password: Password (or client secret for service principal)
+            tenant_id: Tenant ID for service principal authentication (Azure AD)
         """
         self.server = server or os.getenv('FABRIC_SQL_SERVER')
         self.database = database or os.getenv('FABRIC_LAKEHOUSE_NAME')
         self.username = username or os.getenv('FABRIC_SQL_USER')
         self.password = password or os.getenv('FABRIC_SQL_PASSWORD')
+        self.tenant_id = tenant_id or os.getenv('FABRIC_TENANT_ID')
         self.connection = None
         self._import_pyodbc()
     
@@ -49,16 +51,34 @@ class FabricLakehouseConnector:
                 logger.error("pyodbc library required for SQL connection")
                 return False
             
-            connection_string = (
-                f'Driver={{ODBC Driver 17 for SQL Server}};'
-                f'Server={self.server},1433;'
-                f'Database={self.database};'
-                f'UID={self.username};'
-                f'PWD={self.password};'
-                f'Encrypt=yes;'
-                f'TrustServerCertificate=no;'
-                f'Connection Timeout=30;'
-            )
+            # Use service principal auth if tenant_id provided, otherwise basic auth
+            if self.tenant_id:
+                # Service Principal authentication
+                connection_string = (
+                    f'Driver={{ODBC Driver 17 for SQL Server}};'
+                    f'Server={self.server},1433;'
+                    f'Database={self.database};'
+                    f'UID={self.username};'
+                    f'PWD={self.password};'
+                    f'Authentication=ActiveDirectoryServicePrincipal;'
+                    f'Encrypt=yes;'
+                    f'TrustServerCertificate=no;'
+                    f'Connection Timeout=30;'
+                )
+                logger.info("Using Service Principal authentication")
+            else:
+                # Basic authentication (user credentials)
+                connection_string = (
+                    f'Driver={{ODBC Driver 17 for SQL Server}};'
+                    f'Server={self.server},1433;'
+                    f'Database={self.database};'
+                    f'UID={self.username};'
+                    f'PWD={self.password};'
+                    f'Encrypt=yes;'
+                    f'TrustServerCertificate=no;'
+                    f'Connection Timeout=30;'
+                )
+                logger.info("Using Basic authentication")
             
             self.connection = self.pyodbc.connect(connection_string, autocommit=True)
             logger.info(f"Connected to Lakehouse: {self.database}")
