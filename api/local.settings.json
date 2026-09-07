@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "FABRIC_SQL_SERVER": "wjkmgn5qqx2upmrca62i252o4m-ow5vzjottaherpbj5wwxvw6e5e.datawarehouse.fabric.microsoft.com",
+    "FABRIC_LAKEHOUSE_NAME": "Staff_survey_HDFT",
+    "FABRIC_SQL_USER": "7c404b98-53c7-45c8-8b26-b0a91d9f7db4",
+    "FABRIC_SQL_PASSWORD": "XE38Q~k6.lOfkwTFQFqiSOGDxqkvaEar9INDGbQh",
+    "FABRIC_TENANT_ID": "37c354b2-85b0-47f5-b222-07b48d774ee3"
+  }
+}
