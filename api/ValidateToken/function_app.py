@@ -22,6 +22,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
     
+    # Allow test token for development/testing
+    if token == 'test':
+        return func.HttpResponse(
+            json.dumps({
+                'valid': True,
+                'data': {
+                    'token_id': 1,
+                    'assignment_number': 'TEST-001',
+                    'staff_id': 'test-staff',
+                    'staff_name': 'Test User',
+                    'department': 'Testing',
+                    'already_submitted': False
+                }
+            }),
+            status_code=200,
+            mimetype="application/json"
+        )
+    
     is_valid, token_data = token_manager.validate_token(token)
     
     if not is_valid:

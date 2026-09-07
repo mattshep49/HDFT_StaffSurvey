@@ -63,6 +63,8 @@ class SurveyApp {
             landing.classList.add('leaving');
             setTimeout(() => {
                 landing.classList.add('hidden');
+                // Load survey after landing page is hidden
+                this.loadSurvey();
             }, 650);
         }
     }
@@ -586,6 +588,12 @@ class SurveyApp {
      * Show error page
      */
     showError(title, message) {
+        // Make sure app container is visible
+        const appContainer = document.getElementById('app');
+        if (appContainer) {
+            appContainer.style.display = 'block';
+        }
+
         document.getElementById('token-entry').classList.add('hidden');
         document.getElementById('survey-page').classList.add('hidden');
         document.getElementById('thank-you-page').classList.add('hidden');
@@ -609,6 +617,12 @@ class SurveyApp {
      * Show survey page
      */
     showSurveyPage() {
+        // Make sure app container is visible
+        const appContainer = document.getElementById('app');
+        if (appContainer) {
+            appContainer.style.display = 'block';
+        }
+
         document.getElementById('token-entry').classList.add('hidden');
         document.getElementById('survey-page').classList.remove('hidden');
         document.getElementById('thank-you-page').classList.add('hidden');
