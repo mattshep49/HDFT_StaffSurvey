@@ -214,7 +214,13 @@ class SurveyApp {
      * Get only the questions that should be displayed
      */
     getVisibleQuestions() {
-        return this.questions.filter(q => this.shouldShowQuestion(q));
+        const visible = this.questions.filter(q => this.shouldShowQuestion(q));
+        console.log('getVisibleQuestions:', {
+            total: this.questions.length,
+            visible: visible.length,
+            questions: visible.map(q => ({id: q.question_id, branch: q.branch_type}))
+        });
+        return visible;
     }
 
     /**
@@ -233,17 +239,33 @@ class SurveyApp {
      */
     renderCurrentQuestion() {
         const visibleQuestions = this.getVisibleQuestions();
+        console.log('renderCurrentQuestion called:', {
+            visibleQuestionsCount: visibleQuestions.length,
+            currentIndex: this.currentQuestionIndex,
+            totalQuestions: this.questions.length
+        });
         
         if (this.currentQuestionIndex < 0 || this.currentQuestionIndex >= visibleQuestions.length) {
+            console.log('Invalid question index, returning');
             return;
         }
 
         const container = document.getElementById('questions-container');
+        console.log('Container element:', container);
+        
+        if (!container) {
+            console.error('questions-container not found!');
+            return;
+        }
+
         container.innerHTML = '';
 
         const question = visibleQuestions[this.currentQuestionIndex];
+        console.log('Rendering question:', question.question_id, question.question_text);
+        
         const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
         container.appendChild(questionElement);
+        console.log('Question element appended to container');
 
         this.updateProgressBar();
         this.updateNavigationButtons();
@@ -627,20 +649,39 @@ class SurveyApp {
      * Show survey page
      */
     showSurveyPage() {
+        console.log('showSurveyPage called');
+        
         // Make sure app container is visible
         const appContainer = document.getElementById('app');
         if (appContainer) {
+            console.log('Setting app container display to block');
             appContainer.style.display = 'block';
+        } else {
+            console.error('app container not found!');
         }
 
-        document.getElementById('token-entry').classList.add('hidden');
-        document.getElementById('survey-page').classList.remove('hidden');
-        document.getElementById('thank-you-page').classList.add('hidden');
-        document.getElementById('error-page').classList.add('hidden');
+        const tokenEntry = document.getElementById('token-entry');
+        const surveyPage = document.getElementById('survey-page');
+        const thankYouPage = document.getElementById('thank-you-page');
+        const errorPage = document.getElementById('error-page');
+        
+        console.log('Element status:', {
+            tokenEntry: !!tokenEntry,
+            surveyPage: !!surveyPage,
+            thankYouPage: !!thankYouPage,
+            errorPage: !!errorPage
+        });
+
+        if (tokenEntry) tokenEntry.classList.add('hidden');
+        if (surveyPage) surveyPage.classList.remove('hidden');
+        if (thankYouPage) thankYouPage.classList.add('hidden');
+        if (errorPage) errorPage.classList.add('hidden');
 
         // Clear any error messages
         const errorDiv = document.getElementById('survey-error');
         if (errorDiv) errorDiv.classList.add('hidden');
+        
+        console.log('Survey page shown');
     }
 
     /**
