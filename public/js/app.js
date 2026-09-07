@@ -69,6 +69,13 @@ class SurveyApp {
         const landing = document.getElementById('landing');
         if (landing) {
             console.log('Closing landing page');
+            
+            // Ensure .logo class is added (shows DOT logo/identity section)
+            if (!landing.classList.contains('logo')) {
+                console.log('Adding .logo class to show identity/DOT logo');
+                landing.classList.add('logo');
+            }
+            
             console.log('Landing element before changes:', {
                 display: window.getComputedStyle(landing).display,
                 visibility: window.getComputedStyle(landing).visibility,
