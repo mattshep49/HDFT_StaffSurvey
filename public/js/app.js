@@ -706,16 +706,27 @@ class SurveyApp {
             errorPage: !!errorPage
         });
 
-        if (tokenEntry) tokenEntry.classList.add('hidden');
+        if (tokenEntry) {
+            tokenEntry.classList.add('hidden');
+            console.log('Token entry hidden');
+        }
+        
         if (surveyPage) {
+            // Make absolutely sure hidden class is removed
             surveyPage.classList.remove('hidden');
+            surveyPage.style.display = 'flex';
+            surveyPage.style.visibility = 'visible';
+            surveyPage.style.opacity = '1';
+            console.log('Survey page unhidden with inline styles');
             console.log('Survey page computed style after unhiding:', {
                 display: window.getComputedStyle(surveyPage).display,
                 visibility: window.getComputedStyle(surveyPage).visibility,
                 height: window.getComputedStyle(surveyPage).height,
-                zIndex: window.getComputedStyle(surveyPage).zIndex
+                zIndex: window.getComputedStyle(surveyPage).zIndex,
+                opacity: window.getComputedStyle(surveyPage).opacity
             });
         }
+        
         if (thankYouPage) thankYouPage.classList.add('hidden');
         if (errorPage) errorPage.classList.add('hidden');
 

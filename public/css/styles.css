@@ -348,19 +348,29 @@ html, body {
     text-align: right;
 }
 
+.survey-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column;
+    min-height: auto;
+    width: 100%;
+}
+
 .survey-form {
     width: 100%;
-    display: block;
+    display: block !important;
+    overflow: visible !important;
 }
 
 .questions-container {
     padding: var(--spacing-lg);
     min-height: 200px;
-}
-
-.answer-container {
-    display: block;
+    display: block !important;
     width: 100%;
+    overflow: visible !important;
 }
 
 .question-group {
@@ -386,6 +396,13 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: var(--spacing-sm);
+}
+
+.answer-container {
+    display: block !important;
+    width: 100%;
+    overflow: visible !important;
+    clear: both;
 }
 
 /* Likert Scale */
