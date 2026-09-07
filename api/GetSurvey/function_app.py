@@ -29,21 +29,37 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('GetSurvey function triggered')
     
     try:
+        # Log environment variable status
+        has_fabric_server = bool(os.getenv('FABRIC_SQL_SERVER'))
+        logging.info(f"Fabric SQL Server configured: {has_fabric_server}")
+        
         # Check if Fabric connection is available
-        if os.getenv('FABRIC_SQL_SERVER'):
+        if has_fabric_server:
             try:
+                logging.info("Attempting Fabric connection...")
                 from app.fabric_connector import FabricLakehouseConnector
+                
+                server = os.getenv('FABRIC_SQL_SERVER')
+                database = os.getenv('FABRIC_LAKEHOUSE_NAME')
+                username = os.getenv('FABRIC_SQL_USER')
+                tenant_id = os.getenv('FABRIC_TENANT_ID')
+                
+                logging.info(f"Connecting to Fabric: {server}/{database}")
+                
                 connector = FabricLakehouseConnector(
-                    server=os.getenv('FABRIC_SQL_SERVER'),
-                    database=os.getenv('FABRIC_LAKEHOUSE_NAME'),
-                    username=os.getenv('FABRIC_SQL_USER'),
+                    server=server,
+                    database=database,
+                    username=username,
                     password=os.getenv('FABRIC_SQL_PASSWORD'),
-                    tenant_id=os.getenv('FABRIC_TENANT_ID')
+                    tenant_id=tenant_id
                 )
                 
                 if connector.connect():
+                    logging.info("Successfully connected to Fabric")
                     questions = connector.load_survey_questions('survey_questions')
                     connector.disconnect()
+                    logging.info(f"Loaded {len(questions)} questions from Fabric")
+                    
                     return func.HttpResponse(
                         json.dumps({
                             'questions': questions,
@@ -53,11 +69,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         status_code=200,
                         mimetype="application/json"
                     )
+                else:
+                    logging.warning("Failed to connect to Fabric, using mock data")
+            except ImportError as e:
+                logging.warning(f"Could not import FabricLakehouseConnector: {e}")
             except Exception as e:
-                logging.warning(f"Fabric connection failed, using mock data: {e}")
+                logging.warning(f"Fabric connection error: {e}")
+        else:
+            logging.info("Fabric SQL Server not configured")
         
         # Return mock data for testing
-        logging.info("Using mock survey data")
+        logging.info(f"Using mock survey data ({len(MOCK_QUESTIONS)} questions)")
         return func.HttpResponse(
             json.dumps({
                 'questions': MOCK_QUESTIONS,
@@ -69,12 +91,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
         
     except Exception as e:
-        logging.error(f"Error loading survey: {e}")
-        return func.HttpResponse(
-            json.dumps({'error': str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
+        logging.error(f"Unexpected error loading survey: {e}", exc_info=True)
         return func.HttpResponse(
             json.dumps({'error': str(e)}),
             status_code=500,

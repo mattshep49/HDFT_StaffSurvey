@@ -49,8 +49,9 @@ class SurveyApp {
 
         if (tokenParam) {
             this.token = tokenParam;
-            // Validate token immediately without waiting for user action
-            setTimeout(() => this.validateToken(), 2000); // After landing page animation
+            console.log('Token found in URL:', this.token);
+            // Wait for landing page animation to complete (8.6s) before validating
+            setTimeout(() => this.validateToken(), 9000);
         }
     }
 
@@ -60,6 +61,7 @@ class SurveyApp {
     closeLandingPage() {
         const landing = document.getElementById('landing');
         if (landing) {
+            console.log('Closing landing page');
             landing.classList.add('leaving');
             setTimeout(() => {
                 landing.classList.add('hidden');
@@ -91,22 +93,21 @@ class SurveyApp {
      */
     async validateToken() {
         try {
+            console.log('Validating token:', this.token);
             this.showLoading();
 
             const response = await fetch(
                 `/api/validate-token?token=${encodeURIComponent(this.token)}`
             );
 
+            console.log('Token validation response:', response.status);
+
             if (!response.ok) {
-                this.showError(
-                    'Invalid Token',
-                    'The survey token in your URL is invalid or has expired. Please contact HR for assistance.'
-                );
-                this.hideLoading();
-                return;
+                throw new Error(`Token validation failed: ${response.status}`);
             }
 
             const data = await response.json();
+            console.log('Token data received:', data);
             
             if (!data.valid) {
                 this.showError(
@@ -118,6 +119,7 @@ class SurveyApp {
             }
 
             this.tokenData = data.data;
+            console.log('Token valid, staff:', this.tokenData.staff_name);
 
             // Check if already submitted
             if (this.tokenData.already_submitted) {
@@ -126,14 +128,9 @@ class SurveyApp {
                 return;
             }
 
-            // Hide landing page
-            const landing = document.getElementById('landing');
-            if (landing) {
-                landing.classList.add('hidden');
-            }
-
-            // Load survey questions
-            await this.loadSurvey();
+            // Close landing page with animation then load survey
+            this.hideLoading();
+            this.closeLandingPage();
         } catch (error) {
             console.error('Token validation error:', error);
             this.showError(
@@ -149,18 +146,25 @@ class SurveyApp {
      */
     async loadSurvey() {
         try {
+            console.log('Loading survey questions from API');
             const response = await fetch('/api/survey');
 
+            console.log('Survey API response:', response.status);
+
             if (!response.ok) {
-                throw new Error('Failed to load survey');
+                throw new Error(`Failed to load survey: ${response.status}`);
             }
 
             const data = await response.json();
+            console.log('Survey data received:', data);
+            
             this.questions = data.questions || [];
 
             if (this.questions.length === 0) {
                 throw new Error('No questions found');
             }
+
+            console.log(`Loaded ${this.questions.length} questions`);
 
             // Initialize responses object
             this.questions.forEach(q => {
