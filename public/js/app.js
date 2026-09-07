@@ -126,6 +126,12 @@ class SurveyApp {
                 return;
             }
 
+            // Hide landing page
+            const landing = document.getElementById('landing');
+            if (landing) {
+                landing.classList.add('hidden');
+            }
+
             // Load survey questions
             await this.loadSurvey();
         } catch (error) {
