@@ -4,8 +4,8 @@ import logging
 import os
 import sys
 
-# Add parent directory to Python path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+# Add api root to path so `app` package is importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Mock survey data for testing
 MOCK_QUESTIONS = [
