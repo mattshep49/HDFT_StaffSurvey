@@ -45,6 +45,6 @@ class OneLakeConnector:
         resp.raise_for_status()
         return resp.json()
 
-    def load_survey_questions(self, file_path: str = 'survey_questions.json') -> list:
+    def load_survey_questions(self, file_path: str = 'Question_data_json/survey_questions.json') -> list:
         data = self.load_json_file(file_path)
         return data.get('questions', [])

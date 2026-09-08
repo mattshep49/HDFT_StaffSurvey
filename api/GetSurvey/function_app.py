@@ -30,8 +30,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         connector = OneLakeConnector()
 
         if connector.is_configured():
-            logging.info("OneLake configured — fetching survey_questions.json")
-            questions = connector.load_survey_questions('survey_questions.json')
+            logging.info("OneLake configured — fetching Question_data_json/survey_questions.json")
+            questions = connector.load_survey_questions('Question_data_json/survey_questions.json')
             if questions:
                 logging.info(f"Loaded {len(questions)} questions from OneLake")
                 return func.HttpResponse(
@@ -39,7 +39,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     status_code=200,
                     mimetype="application/json"
                 )
-            fabric_error = "OneLake returned 0 questions — check survey_questions.json exists in Lakehouse Files"
+            fabric_error = "OneLake returned 0 questions — check Question_data_json/survey_questions.json exists in Lakehouse Files"
             logging.warning(fabric_error)
         else:
             fabric_error = "FABRIC_WORKSPACE_ID not set — add it in Azure portal environment variables"
