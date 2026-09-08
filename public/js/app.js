@@ -218,18 +218,15 @@ class SurveyApp {
             return true;
         }
 
-        // For conditional questions, check if parent was answered with "Yes"
+        // For conditional questions, check if parent was answered with the expected value
         if (question.branch_type === 'conditional') {
-            const parentQuestion = this.questions.find(q => q.question_id === question.parent_question_id);
-            if (!parentQuestion) return false;
-
             const parentResponse = this.responses[question.parent_question_id];
-            
-            // Check if parent answer equals show_if_answer value
-            if (question.show_if_answer === 'Yes') {
-                return parentResponse === 'Yes';
+            if (parentResponse === null || parentResponse === undefined) return false;
+            // multiple_choice stores an array; likert/text stores a string
+            if (Array.isArray(parentResponse)) {
+                return parentResponse.includes(question.show_if_answer);
             }
-            return false;
+            return parentResponse === question.show_if_answer;
         }
 
         return false;
