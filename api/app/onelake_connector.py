@@ -41,8 +41,13 @@ class OneLakeConnector:
         token = self._get_token()
         url = f"{_ONELAKE_DFS}/{self.workspace_id}/{self.lakehouse_name}.Lakehouse/Files/{file_path}"
         logger.info(f"OneLake GET {url}")
-        resp = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=30)
-        resp.raise_for_status()
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'x-ms-version': '2023-11-03',
+        }
+        resp = requests.get(url, headers=headers, timeout=30)
+        if not resp.ok:
+            raise RuntimeError(f"HTTP {resp.status_code} from {url} — {resp.text[:300]}")
         return resp.json()
 
     def load_survey_questions(self, file_path: str = 'Question_data_json/survey_questions.json') -> list:
