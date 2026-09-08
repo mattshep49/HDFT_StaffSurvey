@@ -1,2 +1,4 @@
 azure-functions
+msal
+requests
 pyodbc

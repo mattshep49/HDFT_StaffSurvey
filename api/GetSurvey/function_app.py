@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 
-# Add api root to path so `app` package is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Mock survey data for testing
@@ -22,78 +21,43 @@ MOCK_QUESTIONS = [
 ]
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Get survey questions from Fabric Lakehouse (or mock data for testing)
-    GET /api/survey
-    """
     logging.info('GetSurvey function triggered')
-    
+
+    fabric_error = None
+
     try:
-        # Log environment variable status
-        has_fabric_server = bool(os.getenv('FABRIC_SQL_SERVER'))
-        logging.info(f"Fabric SQL Server configured: {has_fabric_server}")
-        
-        # Check if Fabric connection is available
-        if has_fabric_server:
-            try:
-                logging.info("Attempting Fabric connection...")
-                from app.fabric_connector import FabricLakehouseConnector
-                
-                server = os.getenv('FABRIC_SQL_SERVER')
-                database = os.getenv('FABRIC_LAKEHOUSE_NAME')
-                username = os.getenv('FABRIC_SQL_USER')
-                tenant_id = os.getenv('FABRIC_TENANT_ID')
-                
-                logging.info(f"Connecting to Fabric: {server}/{database}")
-                
-                connector = FabricLakehouseConnector(
-                    server=server,
-                    database=database,
-                    username=username,
-                    password=os.getenv('FABRIC_SQL_PASSWORD'),
-                    tenant_id=tenant_id
+        from app.onelake_connector import OneLakeConnector
+        connector = OneLakeConnector()
+
+        if connector.is_configured():
+            logging.info("OneLake configured — fetching survey_questions.json")
+            questions = connector.load_survey_questions('survey_questions.json')
+            if questions:
+                logging.info(f"Loaded {len(questions)} questions from OneLake")
+                return func.HttpResponse(
+                    json.dumps({'questions': questions, 'total': len(questions), 'source': 'onelake'}),
+                    status_code=200,
+                    mimetype="application/json"
                 )
-                
-                if connector.connect():
-                    logging.info("Successfully connected to Fabric")
-                    questions = connector.load_survey_questions('survey_questions')
-                    connector.disconnect()
-                    logging.info(f"Loaded {len(questions)} questions from Fabric")
-                    
-                    return func.HttpResponse(
-                        json.dumps({
-                            'questions': questions,
-                            'total': len(questions),
-                            'source': 'fabric'
-                        }),
-                        status_code=200,
-                        mimetype="application/json"
-                    )
-                else:
-                    logging.warning("Failed to connect to Fabric, using mock data")
-            except ImportError as e:
-                logging.warning(f"Could not import FabricLakehouseConnector: {e}")
-            except Exception as e:
-                logging.warning(f"Fabric connection error: {e}")
+            fabric_error = "OneLake returned 0 questions — check survey_questions.json exists in Lakehouse Files"
+            logging.warning(fabric_error)
         else:
-            logging.info("Fabric SQL Server not configured")
-        
-        # Return mock data for testing
-        logging.info(f"Using mock survey data ({len(MOCK_QUESTIONS)} questions)")
-        return func.HttpResponse(
-            json.dumps({
-                'questions': MOCK_QUESTIONS,
-                'total': len(MOCK_QUESTIONS),
-                'source': 'mock'
-            }),
-            status_code=200,
-            mimetype="application/json"
-        )
-        
+            fabric_error = "FABRIC_WORKSPACE_ID not set — add it in Azure portal environment variables"
+            logging.info(fabric_error)
+
     except Exception as e:
-        logging.error(f"Unexpected error loading survey: {e}", exc_info=True)
-        return func.HttpResponse(
-            json.dumps({'error': str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
+        fabric_error = str(e)
+        logging.warning(f"OneLake error: {e}")
+
+    # Fallback: return mock data so the UI still works during setup
+    logging.info(f"Using mock data. Reason: {fabric_error}")
+    return func.HttpResponse(
+        json.dumps({
+            'questions': MOCK_QUESTIONS,
+            'total': len(MOCK_QUESTIONS),
+            'source': 'mock',
+            'connection_error': fabric_error
+        }),
+        status_code=200,
+        mimetype="application/json"
+    )

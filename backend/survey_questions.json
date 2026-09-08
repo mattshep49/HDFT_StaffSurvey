@@ -1,0 +1,66 @@
+{
+  "survey_title": "HDFT Staff Survey 2026",
+  "survey_description": "Your feedback is confidential and will be used to improve our services.",
+  "questions": [
+    {
+      "question_id": "Q1",
+      "question_text": "Overall, how satisfied are you with your job?",
+      "answer_type": "likert",
+      "answer_options": ["Strongly Disagree", "Disagree", "Neither Agree nor Disagree", "Agree", "Strongly Agree"],
+      "is_required": true,
+      "section": "Job Satisfaction",
+      "sequence": 1,
+      "branch_type": "parent",
+      "parent_question_id": null,
+      "show_if_answer": null
+    },
+    {
+      "question_id": "Q2",
+      "question_text": "Do you have the tools and resources you need to do your job effectively?",
+      "answer_type": "likert",
+      "answer_options": ["Strongly Disagree", "Disagree", "Neither Agree nor Disagree", "Agree", "Strongly Agree"],
+      "is_required": true,
+      "section": "Resources",
+      "sequence": 2,
+      "branch_type": "parent",
+      "parent_question_id": null,
+      "show_if_answer": null
+    },
+    {
+      "question_id": "Q3",
+      "question_text": "Have you experienced bullying, harassment or discrimination at work in the last 12 months?",
+      "answer_type": "likert",
+      "answer_options": ["Yes", "No"],
+      "is_required": true,
+      "section": "Workplace Safety",
+      "sequence": 10,
+      "branch_type": "parent",
+      "parent_question_id": null,
+      "show_if_answer": null
+    },
+    {
+      "question_id": "Q3a",
+      "question_text": "If yes, was this from a manager or team leader?",
+      "answer_type": "likert",
+      "answer_options": ["Yes", "No"],
+      "is_required": false,
+      "section": "Workplace Safety",
+      "sequence": 11,
+      "branch_type": "conditional",
+      "parent_question_id": "Q3",
+      "show_if_answer": "Yes"
+    },
+    {
+      "question_id": "Q3b",
+      "question_text": "Did you report it?",
+      "answer_type": "likert",
+      "answer_options": ["Yes", "No", "Preferred not to"],
+      "is_required": false,
+      "section": "Workplace Safety",
+      "sequence": 12,
+      "branch_type": "conditional",
+      "parent_question_id": "Q3",
+      "show_if_answer": "Yes"
+    }
+  ]
+}
