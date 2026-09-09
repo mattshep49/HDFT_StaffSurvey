@@ -225,14 +225,37 @@ class SurveyApp {
                 console.log(`Branching: ${question.question_id} hidden - parent ${question.parent_question_id} not answered yet`);
                 return false;
             }
+
+            let condition = question.show_if_answer;
+            let isNegation = false;
+
+            // Handle negation syntax: "not X" means show if NOT X
+            if (typeof condition === 'string' && condition.toLowerCase().startsWith('not ')) {
+                isNegation = true;
+                condition = condition.substring(4).trim(); // Remove "not " prefix
+            }
+
+            let result = false;
+
             // multiple_choice stores an array; likert/text stores a string
             if (Array.isArray(parentResponse)) {
-                const result = parentResponse.includes(question.show_if_answer);
-                console.log(`Branching: ${question.question_id} - parent response is array [${parentResponse.join(', ')}], checking for "${question.show_if_answer}" = ${result}`);
-                return result;
+                if (isNegation) {
+                    result = !parentResponse.includes(condition);
+                    console.log(`Branching: ${question.question_id} - parent response [${parentResponse.join(', ')}], checking NOT "${condition}" = ${result}`);
+                } else {
+                    result = parentResponse.includes(condition);
+                    console.log(`Branching: ${question.question_id} - parent response [${parentResponse.join(', ')}], checking for "${condition}" = ${result}`);
+                }
+            } else {
+                if (isNegation) {
+                    result = parentResponse !== condition;
+                    console.log(`Branching: ${question.question_id} - parent response "${parentResponse}", checking NOT "${condition}" = ${result}`);
+                } else {
+                    result = parentResponse === condition;
+                    console.log(`Branching: ${question.question_id} - parent response "${parentResponse}", checking for "${condition}" = ${result}`);
+                }
             }
-            const result = parentResponse === question.show_if_answer;
-            console.log(`Branching: ${question.question_id} - parent response "${parentResponse}", checking for "${question.show_if_answer}" = ${result}`);
+
             return result;
         }
 
