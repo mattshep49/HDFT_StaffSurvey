@@ -13,7 +13,7 @@ from functools import wraps
 
 from app.config import Config
 from app.token_manager import TokenManager
-from app.fabric_connector import FabricConnector
+from app.fabric_connector import FabricLakehouseConnector
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +30,7 @@ CORS(app)
 # Initialize token manager and Fabric connector
 os.makedirs('data', exist_ok=True)
 token_manager = TokenManager('data/tokens.db')
-fabric_connector = FabricConnector()
+fabric_connector = FabricLakehouseConnector()
 
 
 # ============================================================================
@@ -224,11 +224,19 @@ def load_survey_questions():
         return _get_default_survey()
 
 
+def _get_default_questions():
+    """Return default survey questions"""
+    return [
+        {"question_id": "Q1", "question_text": "How satisfied are you with your job?", "answer_type": "likert", "answer_options": "[\"Very Dissatisfied\", \"Dissatisfied\", \"Neutral\", \"Satisfied\", \"Very Satisfied\"]", "is_required": True, "section": "Job Satisfaction", "sequence": 1},
+        {"question_id": "Q2", "question_text": "Do you have the tools you need to do your job?", "answer_type": "multiple_choice", "answer_options": "[\"Yes\", \"No\"]", "is_required": True, "section": "Resources", "sequence": 2},
+        {"question_id": "Q2a", "question_text": "What tools are missing?", "answer_type": "textarea", "answer_options": "[]", "is_required": False, "section": "Resources", "sequence": 3},
+    ]
+
 def _get_default_survey():
     """Return default survey structure"""
     return {
         'title': Config.SURVEY_TITLE,
-        'questions': FabricConnector._get_default_questions()
+        'questions': _get_default_questions()
     }
 
 
