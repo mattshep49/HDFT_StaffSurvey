@@ -389,7 +389,7 @@ class SurveyApp {
                 const q1Response = this.responses['Q1'];
                 if (q1Response && q1Response.length > 0) {
                     const emotions = Array.isArray(q1Response) ? q1Response.join(', ') : q1Response;
-                    displayText = question.question_text.replace('...', emotions);
+                    displayText = question.question_text.replace('...', ' ' + emotions);
                 }
             }
             const questionLabel = document.createElement('label');
