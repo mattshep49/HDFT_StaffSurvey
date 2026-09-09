@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -23,16 +24,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     if token == 'test':
+        now = datetime.utcnow()
+        campaign = f"Q{(now.month - 1) // 3 + 1}{now.year}"
         return func.HttpResponse(
             json.dumps({
                 'valid': True,
                 'data': {
-                    'token_id': 1,
-                    'assignment_number': 'TEST-001',
-                    'staff_id': 'test-staff',
-                    'staff_name': 'Test User',
-                    'department': 'Testing',
-                    'already_submitted': False
+                    'token': 'test',
+                    'campaign': campaign,
                 }
             }),
             status_code=200, mimetype='application/json'
@@ -54,12 +53,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     return func.HttpResponse(
         json.dumps({'valid': True, 'data': {
-            'token_id': token_data.get('token_id'),
-            'assignment_number': token_data.get('assignment_number'),
-            'staff_id': token_data.get('staff_id'),
-            'staff_name': token_data.get('staff_name'),
-            'department': token_data.get('department'),
-            'already_submitted': token_data.get('already_submitted', False)
+            'token': token_data.get('token'),
+            'campaign': token_data.get('campaign'),
         }}),
         status_code=200, mimetype='application/json'
     )

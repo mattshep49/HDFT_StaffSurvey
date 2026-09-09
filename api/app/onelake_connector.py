@@ -106,12 +106,12 @@ class OneLakeConnector:
         return filename
 
     def validate_token(self, token_value: str) -> dict:
-        """Look up token from Files/Token_data/valid_tokens.json. Returns token dict or None."""
+        """Look up token from Files/token_json/pending_tokens.json. Returns token dict or None."""
         try:
-            data = self.load_json_file('Token_data/valid_tokens.json')
+            data = self.load_json_file('token_json/pending_tokens.json')
             tokens = data if isinstance(data, list) else data.get('tokens', [])
             for t in tokens:
-                if t.get('token') == token_value and t.get('is_valid', True):
+                if t.get('token') == token_value:
                     return t
             return None
         except Exception as e:
