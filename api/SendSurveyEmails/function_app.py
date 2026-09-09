@@ -20,7 +20,7 @@ EMAIL_BODY_HTML = """\
 <body>
 <p>Dear colleague,</p>
 <p>
-  You are invited to take part in the HDFT Staff Survey. Your responses are
+  You are invited to take part in the HDFT QuarterlyStaff Survey. Your responses are
   completely confidential and the survey takes approximately 10 minutes.
 </p>
 <p>
@@ -29,8 +29,7 @@ EMAIL_BODY_HTML = """\
 </p>
 <p><a href="{url}">{url}</a></p>
 <p>
-  If you have any questions, please contact
-  <a href="mailto:hdft.biautomation@nhs.net">hdft.biautomation@nhs.net</a>.
+
 </p>
 <p>Thank you for your time.</p>
 <p>HDFT People Team</p>
@@ -83,11 +82,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("SendSurveyEmails function triggered")
 
     dry_run = False
+    test_email = None
     try:
         body = req.get_json()
         dry_run = body.get("dry_run", False)
+        test_email = body.get("test_email")
     except (ValueError, AttributeError):
         pass
+
+    # Single test email — bypasses OneLake entirely
+    if test_email:
+        test_url = "https://calm-mushroom-018f3be03.3.azurestaticapps.net/?token=TEST-TOKEN"
+        try:
+            sent, failed = _send_emails([{"email": test_email, "url": test_url}])
+            return func.HttpResponse(
+                json.dumps({"test_email": test_email, "sent": sent, "failed": failed}),
+                status_code=200, mimetype="application/json"
+            )
+        except Exception as exc:
+            return func.HttpResponse(
+                json.dumps({"error": f"SMTP failure: {exc}"}),
+                status_code=500, mimetype="application/json"
+            )
 
     connector = OneLakeConnector()
     if not connector.is_configured():
