@@ -383,13 +383,21 @@ class SurveyApp {
             `;
             group.appendChild(questionLabel);
         } else {
-            // Inline child question (no number)
-            const questionLabel = document.createElement('label');
-            questionLabel.className = 'question-label conditional-child-label';
-            questionLabel.innerHTML = `
-                <div style="font-weight: 600; color: #41c7ed; margin-bottom: 0.5rem;">↳ ${this.escapeHtml(question.question_text)}</div>
-            `;
-            group.appendChild(questionLabel);
+            // Inline child question (no number) - use div instead of label to avoid label nesting with form inputs
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-label conditional-child-label';
+            questionDiv.style.fontWeight = '600';
+            questionDiv.style.color = '#41c7ed';
+            questionDiv.style.marginBottom = '0.5rem';
+            
+            const arrow = document.createElement('span');
+            arrow.textContent = '↳ ';
+            questionDiv.appendChild(arrow);
+            
+            const text = document.createTextNode(this.escapeHtml(question.question_text));
+            questionDiv.appendChild(text);
+            
+            group.appendChild(questionDiv);
         }
 
         // Create answer options based on type
@@ -487,8 +495,20 @@ class SurveyApp {
             input.type = 'checkbox';
             input.name = `question_${question.question_id}`;
             input.value = option;
+            
+            // Add debugging for checkbox clicks
             input.addEventListener('change', () => {
+                console.log(`Checkbox changed for ${question.question_id}:`, {
+                    option: option,
+                    checked: input.checked,
+                    allChecked: Array.from(
+                        document.querySelectorAll(`input[name="question_${question.question_id}"]:checked`)
+                    ).map(inp => inp.value)
+                });
+                
                 this.updateMultipleChoiceResponse(question.question_id);
+                console.log(`Updated responses[${question.question_id}]:`, this.responses[question.question_id]);
+                
                 // Re-render to show/hide conditional questions
                 this.renderCurrentQuestion();
             });
@@ -549,26 +569,41 @@ class SurveyApp {
     restoreAnswer(question) {
         const savedValue = this.responses[question.question_id];
         
+        console.log(`Restoring answer for ${question.question_id}:`, {
+            savedValue: savedValue,
+            answerType: question.answer_type,
+            allInputsWithName: document.querySelectorAll(`input[name="question_${question.question_id}"]`).length
+        });
+        
         if (!savedValue) return;
 
         if (question.answer_type.toLowerCase() === 'likert') {
             const radio = document.querySelector(
                 `input[name="question_${question.question_id}"][value="${savedValue}"]`
             );
-            if (radio) radio.checked = true;
+            if (radio) {
+                radio.checked = true;
+                console.log(`Restored radio for ${question.question_id}: ${savedValue}`);
+            }
         } else if (question.answer_type.toLowerCase() === 'multiple_choice') {
             const values = Array.isArray(savedValue) ? savedValue : [savedValue];
+            console.log(`Restoring checkboxes for ${question.question_id}:`, values);
             values.forEach(value => {
                 const checkbox = document.querySelector(
                     `input[name="question_${question.question_id}"][value="${value}"]`
                 );
-                if (checkbox) checkbox.checked = true;
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log(`  ✓ Checked: ${value}`);
+                } else {
+                    console.log(`  ✗ Not found: ${value}`);
+                }
             });
         } else if (question.answer_type.toLowerCase() === 'text') {
-            const input = document.querySelector('.text-input');
+            const input = document.querySelector(`input[name="question_${question.question_id}"].text-input`);
             if (input) input.value = savedValue;
         } else if (question.answer_type.toLowerCase() === 'textarea') {
-            const textarea = document.querySelector('.text-area');
+            const textarea = document.querySelector(`textarea[name="question_${question.question_id}"].text-area`);
             if (textarea) textarea.value = savedValue;
         }
     }
