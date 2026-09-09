@@ -307,11 +307,22 @@ html, body {
     border-bottom: 1px solid var(--border-color);
 }
 
+.survey-header-logos {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.survey-kite-logo {
+    height: 44px;
+    width: auto;
+}
+
 .survey-trust-logo {
     height: 52px;
     width: auto;
-    margin-bottom: var(--spacing-md);
-    display: block;
+    object-fit: contain;
 }
 
 .survey-header h1 {
