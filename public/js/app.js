@@ -263,11 +263,15 @@ class SurveyApp {
     }
 
     /**
-     * Get only the questions that should be displayed
+     * Get only the questions that should be displayed (parent questions only for navigation)
      */
     getVisibleQuestions() {
-        const visible = this.questions.filter(q => this.shouldShowQuestion(q));
-        console.log('getVisibleQuestions:', {
+        // Return only parent questions for main navigation
+        const visible = this.questions.filter(q => {
+            return !q.parent_question_id || q.branch_type === 'always_show';
+        }).filter(q => this.shouldShowQuestion(q));
+        
+        console.log('getVisibleQuestions (parents only):', {
             total: this.questions.length,
             visible: visible.length,
             questions: visible.map(q => ({id: q.question_id, branch: q.branch_type}))
@@ -287,7 +291,16 @@ class SurveyApp {
     }
 
     /**
-     * Render current question
+     * Get all conditional children of a question that should be visible
+     */
+    getVisibleChildren(parentQuestionId) {
+        return this.questions.filter(q => {
+            return q.parent_question_id === parentQuestionId && this.shouldShowQuestion(q);
+        }).sort((a, b) => a.sequence - b.sequence);
+    }
+
+    /**
+     * Render current question with inline conditional children
      */
     renderCurrentQuestion() {
         const visibleQuestions = this.getVisibleQuestions();
@@ -303,14 +316,6 @@ class SurveyApp {
         }
 
         const container = document.getElementById('questions-container');
-        console.log('Container element:', container);
-        console.log('Container computed style:', container ? {
-            display: window.getComputedStyle(container).display,
-            visibility: window.getComputedStyle(container).visibility,
-            height: window.getComputedStyle(container).height,
-            width: window.getComputedStyle(container).width,
-            backgroundColor: window.getComputedStyle(container).backgroundColor
-        } : 'not found');
         
         if (!container) {
             console.error('questions-container not found!');
@@ -322,12 +327,34 @@ class SurveyApp {
         const question = visibleQuestions[this.currentQuestionIndex];
         console.log('Rendering question:', question.question_id, question.question_text);
         
-        const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
-        console.log('Question element created:', questionElement);
+        const questionWrapper = document.createElement('div');
+        questionWrapper.className = 'question-wrapper';
         
-        container.appendChild(questionElement);
-        console.log('Question element appended to container');
-        console.log('Container innerHTML length:', container.innerHTML.length);
+        // Render parent question
+        const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
+        questionWrapper.appendChild(questionElement);
+        
+        // Render visible conditional children inline
+        const visibleChildren = this.getVisibleChildren(question.question_id);
+        console.log(`Question ${question.question_id} has ${visibleChildren.length} visible children`);
+        
+        visibleChildren.forEach((childQuestion, childIndex) => {
+            const childElement = this.createQuestionElement(childQuestion, -1, -1); // -1 means inline child
+            childElement.classList.add('conditional-child');
+            childElement.style.marginLeft = '2rem';
+            childElement.style.marginTop = '1.5rem';
+            childElement.style.paddingLeft = '1.5rem';
+            childElement.style.borderLeft = '3px solid #41c7ed';
+            questionWrapper.appendChild(childElement);
+            
+            // Restore answer for child if exists
+            if (this.responses[childQuestion.question_id] !== null) {
+                this.restoreAnswer(childQuestion);
+            }
+        });
+        
+        container.appendChild(questionWrapper);
+        console.log('Question and children appended to container');
 
         this.updateProgressBar();
         this.updateNavigationButtons();
@@ -345,14 +372,25 @@ class SurveyApp {
         const group = document.createElement('div');
         group.className = 'question-group';
 
-        const questionNum = currentIndex + 1;
-        const questionLabel = document.createElement('label');
-        questionLabel.className = 'question-label';
-        questionLabel.innerHTML = `
-            <div class="question-number">Question ${questionNum} of ${totalVisible}</div>
-            <div>${this.escapeHtml(question.question_text)}</div>
-        `;
-        group.appendChild(questionLabel);
+        // Only show question number if this is a main question (currentIndex >= 0)
+        if (currentIndex >= 0) {
+            const questionNum = currentIndex + 1;
+            const questionLabel = document.createElement('label');
+            questionLabel.className = 'question-label';
+            questionLabel.innerHTML = `
+                <div class="question-number">Question ${questionNum} of ${totalVisible}</div>
+                <div>${this.escapeHtml(question.question_text)}</div>
+            `;
+            group.appendChild(questionLabel);
+        } else {
+            // Inline child question (no number)
+            const questionLabel = document.createElement('label');
+            questionLabel.className = 'question-label conditional-child-label';
+            questionLabel.innerHTML = `
+                <div style="font-weight: 600; color: #41c7ed; margin-bottom: 0.5rem;">↳ ${this.escapeHtml(question.question_text)}</div>
+            `;
+            group.appendChild(questionLabel);
+        }
 
         // Create answer options based on type
         const answerContainer = document.createElement('div');
