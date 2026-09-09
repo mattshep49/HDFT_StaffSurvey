@@ -53,3 +53,67 @@ class OneLakeConnector:
     def load_survey_questions(self, file_path: str = 'Question_data_json/survey_questions.json') -> list:
         data = self.load_json_file(file_path)
         return data.get('questions', [])
+
+    def save_survey_response(self, assignment_number: str, staff_id: str,
+                              responses: dict, token_id: int = None) -> str:
+        """Write response as a JSON file to Files/Responses/ via OneLake DFS API."""
+        import uuid
+        from datetime import datetime
+
+        token = self._get_token()
+        timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%S')
+        uid = str(uuid.uuid4())[:8]
+        filename = f"{timestamp}_{assignment_number}_{uid}.json"
+
+        payload = {
+            'token_id': token_id,
+            'assignment_number': assignment_number,
+            'staff_id': staff_id,
+            'responses': responses,
+            'submitted_at': datetime.utcnow().isoformat() + 'Z'
+        }
+        content = json.dumps(payload, indent=2).encode('utf-8')
+
+        base_url = (
+            f"{_ONELAKE_DFS}/{self.workspace_id}"
+            f"/{self.lakehouse_name}.Lakehouse/Files/Responses/{filename}"
+        )
+        auth = {
+            'Authorization': f'Bearer {token}',
+            'x-ms-version': '2023-11-03',
+        }
+
+        r = requests.put(f"{base_url}?resource=file", headers=auth, timeout=30)
+        if not r.ok:
+            raise RuntimeError(f"Create failed: {r.status_code} — {r.text[:200]}")
+
+        r = requests.patch(
+            f"{base_url}?action=append&position=0",
+            headers={**auth, 'Content-Type': 'application/octet-stream', 'Content-Length': str(len(content))},
+            data=content, timeout=30
+        )
+        if not r.ok:
+            raise RuntimeError(f"Append failed: {r.status_code} — {r.text[:200]}")
+
+        r = requests.patch(
+            f"{base_url}?action=flush&position={len(content)}",
+            headers=auth, timeout=30
+        )
+        if not r.ok:
+            raise RuntimeError(f"Flush failed: {r.status_code} — {r.text[:200]}")
+
+        logger.info(f"Response saved: Responses/{filename}")
+        return filename
+
+    def validate_token(self, token_value: str) -> dict:
+        """Look up token from Files/Token_data/valid_tokens.json. Returns token dict or None."""
+        try:
+            data = self.load_json_file('Token_data/valid_tokens.json')
+            tokens = data if isinstance(data, list) else data.get('tokens', [])
+            for t in tokens:
+                if t.get('token') == token_value and t.get('is_valid', True):
+                    return t
+            return None
+        except Exception as e:
+            logger.warning(f"Token lookup failed: {e}")
+            return None
