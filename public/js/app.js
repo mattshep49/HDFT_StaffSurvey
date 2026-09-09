@@ -383,11 +383,20 @@ class SurveyApp {
         // Only show question number if this is a main question (currentIndex >= 0)
         if (currentIndex >= 0) {
             const questionNum = currentIndex + 1;
+            // Q2: append Q1's selected emotion(s) into the question text
+            let displayText = question.question_text;
+            if (question.question_id === 'Q2') {
+                const q1Response = this.responses['Q1'];
+                if (q1Response && q1Response.length > 0) {
+                    const emotions = Array.isArray(q1Response) ? q1Response.join(', ') : q1Response;
+                    displayText = question.question_text.replace('...', emotions);
+                }
+            }
             const questionLabel = document.createElement('label');
             questionLabel.className = 'question-label';
             questionLabel.innerHTML = `
                 <div class="question-number">Question ${questionNum} of ${totalVisible}</div>
-                <div>${this.escapeHtml(question.question_text)}</div>
+                <div>${this.escapeHtml(displayText)}</div>
             `;
             group.appendChild(questionLabel);
         } else {
@@ -478,12 +487,12 @@ class SurveyApp {
     }
 
     /**
-     * Create checkbox options (multiple choice)
+     * Create checkbox/radio options (multiple choice)
+     * Q1 uses multi-select checkboxes; all other questions use single-select radio buttons
      */
     createCheckboxOptions(container, question) {
         let options = question.answer_options;
         
-        // Parse JSON array if it's a string
         if (typeof options === 'string') {
             try {
                 options = JSON.parse(options);
@@ -491,6 +500,9 @@ class SurveyApp {
                 options = [];
             }
         }
+
+        const isMultiSelect = question.question_id === 'Q1';
+        const inputType = isMultiSelect ? 'checkbox' : 'radio';
 
         const optionsDiv = document.createElement('div');
         optionsDiv.className = 'checkbox-options';
@@ -500,24 +512,16 @@ class SurveyApp {
             label.className = 'checkbox-option';
 
             const input = document.createElement('input');
-            input.type = 'checkbox';
+            input.type = inputType;
             input.name = `question_${question.question_id}`;
             input.value = option;
             
-            // Add debugging for checkbox clicks
             input.addEventListener('change', () => {
-                console.log(`Checkbox changed for ${question.question_id}:`, {
-                    option: option,
-                    checked: input.checked,
-                    allChecked: Array.from(
-                        document.querySelectorAll(`input[name="question_${question.question_id}"]:checked`)
-                    ).map(inp => inp.value)
-                });
-                
-                this.updateMultipleChoiceResponse(question.question_id);
-                console.log(`Updated responses[${question.question_id}]:`, this.responses[question.question_id]);
-                
-                // Re-render to show/hide conditional questions
+                if (isMultiSelect) {
+                    this.updateMultipleChoiceResponse(question.question_id);
+                } else {
+                    this.responses[question.question_id] = option;
+                }
                 this.renderCurrentQuestion();
             });
 
@@ -683,18 +687,25 @@ class SurveyApp {
     async handleSurveySubmit(e) {
         e.preventDefault();
 
-        // Validate all responses
+        // Validate all responses — navigates to first unanswered question if incomplete
         if (!this.validateResponses()) {
-            this.showSurveyError('Please answer all required questions');
+            this.showSurveyError('Please answer this question before submitting.');
             return;
         }
 
         try {
             this.showLoading();
 
+            // Sort responses by question sequence order
+            const sortedResponses = {};
+            this.questions
+                .filter(q => this.responses[q.question_id] !== null && this.responses[q.question_id] !== undefined)
+                .sort((a, b) => a.sequence - b.sequence)
+                .forEach(q => { sortedResponses[q.question_id] = this.responses[q.question_id]; });
+
             const payload = {
                 token: this.token,
-                responses: this.responses
+                responses: sortedResponses
             };
 
             const response = await fetch('/api/submit-response', {
@@ -724,13 +735,19 @@ class SurveyApp {
     }
 
     /**
-     * Validate all responses
+     * Validate all responses; navigates to first unanswered question if any are missing
      */
     validateResponses() {
-        // Only validate visible questions
         const visibleQuestions = this.getVisibleQuestions();
-        for (const question of visibleQuestions) {
-            if (question.is_required && !this.responses[question.question_id]) {
+        for (let i = 0; i < visibleQuestions.length; i++) {
+            const question = visibleQuestions[i];
+            const response = this.responses[question.question_id];
+            const isEmpty = response === null || response === undefined ||
+                            (Array.isArray(response) && response.length === 0) ||
+                            response === '';
+            if (question.is_required && isEmpty) {
+                this.currentQuestionIndex = i;
+                this.renderCurrentQuestion();
                 return false;
             }
         }
