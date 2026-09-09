@@ -24,7 +24,18 @@ class SurveyApp {
         const continueBtn = document.getElementById('continue-intro');
         if (continueBtn) {
             continueBtn.addEventListener('click', () => {
-                // If token in URL, validate it; otherwise just proceed to survey
+                if (this.token) {
+                    this.validateToken();
+                } else {
+                    this.closeLandingPage();
+                }
+            });
+        }
+
+        // Skip button mirrors continue-intro but skips the animation delay
+        const skipBtn = document.getElementById('skip');
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => {
                 if (this.token) {
                     this.validateToken();
                 } else {
@@ -399,6 +410,13 @@ class SurveyApp {
                 <div>${this.escapeHtml(displayText)}</div>
             `;
             group.appendChild(questionLabel);
+            // Q1 multi-select hint
+            if (question.question_id === 'Q1') {
+                const hint = document.createElement('p');
+                hint.className = 'answer-hint';
+                hint.textContent = 'Please select the best 3 options';
+                group.appendChild(hint);
+            }
         } else {
             // Inline child question (no number) - use div instead of label to avoid label nesting with form inputs
             const questionDiv = document.createElement('div');
@@ -875,8 +893,10 @@ class SurveyApp {
     showThankYouPage() {
         document.getElementById('token-entry').classList.add('hidden');
         document.getElementById('survey-page').classList.add('hidden');
-        document.getElementById('thank-you-page').classList.remove('hidden');
+        const thankYouPage = document.getElementById('thank-you-page');
+        thankYouPage.classList.remove('hidden');
         document.getElementById('error-page').classList.add('hidden');
+        setTimeout(() => thankYouPage.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
 
     /**

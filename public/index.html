@@ -216,7 +216,7 @@
             }, 650);
         }
         
-        if (skipBtn) skipBtn.onclick = finish;
+        // Skip is handled by app.js so it also triggers token validation + survey load
         
         if (reduced) {
             if (revealRect) revealRect.setAttribute('width', '1106');
