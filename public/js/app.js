@@ -291,12 +291,18 @@ class SurveyApp {
     }
 
     /**
-     * Get all conditional children of a question that should be visible
+     * Recursively get all visible descendants (children, grandchildren, etc.)
      */
-    getVisibleChildren(parentQuestionId) {
-        return this.questions.filter(q => {
-            return q.parent_question_id === parentQuestionId && this.shouldShowQuestion(q);
-        }).sort((a, b) => a.sequence - b.sequence);
+    getAllVisibleDescendants(parentQuestionId) {
+        const directChildren = this.questions
+            .filter(q => q.parent_question_id === parentQuestionId && this.shouldShowQuestion(q))
+            .sort((a, b) => a.sequence - b.sequence);
+        const all = [];
+        directChildren.forEach(child => {
+            all.push(child);
+            all.push(...this.getAllVisibleDescendants(child.question_id));
+        });
+        return all;
     }
 
     /**
@@ -334,9 +340,9 @@ class SurveyApp {
         const questionElement = this.createQuestionElement(question, this.currentQuestionIndex, visibleQuestions.length);
         questionWrapper.appendChild(questionElement);
         
-        // Render visible conditional children inline
-        const visibleChildren = this.getVisibleChildren(question.question_id);
-        console.log(`Question ${question.question_id} has ${visibleChildren.length} visible children`);
+        // Render all visible conditional descendants inline (children, grandchildren, etc.)
+        const visibleChildren = this.getAllVisibleDescendants(question.question_id);
+        console.log(`Question ${question.question_id} has ${visibleChildren.length} visible descendants`);
         
         visibleChildren.forEach((childQuestion, childIndex) => {
             const childElement = this.createQuestionElement(childQuestion, -1, -1); // -1 means inline child
