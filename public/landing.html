@@ -81,7 +81,7 @@ main{display:grid;place-items:center;padding:1rem clamp(1rem,4vw,4rem)}.intro,.i
  }
  function particle(x,y){const e=document.createElement('i');e.className='particle';const s=3+Math.random()*5;e.style.cssText=`left:${x}px;top:${y}px;width:${s}px;height:${s}px;--dx:${-15+Math.random()*30}px;--dy:${-25-Math.random()*25}px`;stage.appendChild(e);setTimeout(()=>e.remove(),1000)}
  function finish(){landing.classList.add('leaving');setTimeout(()=>{landing.remove();document.getElementById('app').style.display='block'},650)}
- document.getElementById('skip').onclick=finish;document.getElementById('continue').onclick=finish;
+ document.getElementById('skip').onclick=function(){if(window.surveyApp){window.surveyApp.closeLandingPage()}else{finish()}};document.getElementById('continue').onclick=function(){if(window.surveyApp){window.surveyApp.closeLandingPage()}else{finish()}};
  if(reduced){revealRect.setAttribute('width','1106');landing.classList.add('logo')}else{raf=requestAnimationFrame(placeBug);setTimeout(()=>landing.classList.add('logo'),delay+duration+1400)}
  window.addEventListener('beforeunload',()=>cancelAnimationFrame(raf));
 })();

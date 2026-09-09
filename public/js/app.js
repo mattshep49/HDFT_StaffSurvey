@@ -221,12 +221,19 @@ class SurveyApp {
         // For conditional questions, check if parent was answered with the expected value
         if (question.branch_type === 'conditional') {
             const parentResponse = this.responses[question.parent_question_id];
-            if (parentResponse === null || parentResponse === undefined) return false;
+            if (parentResponse === null || parentResponse === undefined) {
+                console.log(`Branching: ${question.question_id} hidden - parent ${question.parent_question_id} not answered yet`);
+                return false;
+            }
             // multiple_choice stores an array; likert/text stores a string
             if (Array.isArray(parentResponse)) {
-                return parentResponse.includes(question.show_if_answer);
+                const result = parentResponse.includes(question.show_if_answer);
+                console.log(`Branching: ${question.question_id} - parent response is array [${parentResponse.join(', ')}], checking for "${question.show_if_answer}" = ${result}`);
+                return result;
             }
-            return parentResponse === question.show_if_answer;
+            const result = parentResponse === question.show_if_answer;
+            console.log(`Branching: ${question.question_id} - parent response "${parentResponse}", checking for "${question.show_if_answer}" = ${result}`);
+            return result;
         }
 
         return false;
