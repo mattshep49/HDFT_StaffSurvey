@@ -501,7 +501,7 @@ class SurveyApp {
             }
         }
 
-        const isMultiSelect = question.question_id === 'Q1';
+        const isMultiSelect = question.question_id === 'Q1' || question.question_id === 'Q16';
         const inputType = isMultiSelect ? 'checkbox' : 'radio';
 
         const optionsDiv = document.createElement('div');
