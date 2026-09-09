@@ -346,23 +346,25 @@ class SurveyApp {
             childElement.style.paddingLeft = '1.5rem';
             childElement.style.borderLeft = '3px solid #41c7ed';
             questionWrapper.appendChild(childElement);
-            
-            // Restore answer for child if exists
-            if (this.responses[childQuestion.question_id] !== null) {
-                this.restoreAnswer(childQuestion);
-            }
         });
         
+        // Append to DOM FIRST so querySelector can find the inputs
         container.appendChild(questionWrapper);
         console.log('Question and children appended to container');
 
         this.updateProgressBar();
         this.updateNavigationButtons();
 
-        // Restore previous answer if exists
+        // Restore answers after DOM is live
         if (this.responses[question.question_id] !== null) {
             this.restoreAnswer(question);
         }
+
+        visibleChildren.forEach((childQuestion) => {
+            if (this.responses[childQuestion.question_id] !== null) {
+                this.restoreAnswer(childQuestion);
+            }
+        });
     }
 
     /**
