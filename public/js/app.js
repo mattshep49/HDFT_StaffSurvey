@@ -138,6 +138,12 @@ class SurveyApp {
 
             console.log('Token validation response:', response.status);
 
+            if (response.status === 401) {
+                this.showInvalidToken();
+                this.hideLoading();
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(`Token validation failed: ${response.status}`);
             }
@@ -816,6 +822,13 @@ class SurveyApp {
     /**
      * Show already submitted message
      */
+    showInvalidToken() {
+        this.showError(
+            'Unrecognised Survey Link',
+            'Sorry, this survey link was not recognised or has already been submitted. If you believe this is an error, please contact the People Team.'
+        );
+    }
+
     showAlreadySubmitted() {
         this.showError(
             'Already Submitted',
