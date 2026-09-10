@@ -2,10 +2,9 @@ import azure.functions as func
 import json
 import logging
 import os
-import smtplib
 import sys
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+from azure.communication.email import EmailClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -39,36 +38,34 @@ EMAIL_BODY_HTML = """\
 
 
 def _send_emails(records: list) -> tuple[int, int]:
-    smtp_server = os.environ["SMTP_SERVER"]
-    smtp_port = int(os.environ.get("SMTP_PORT", 587))
-    smtp_user = os.environ["SMTP_USER"]
-    smtp_password = os.environ["SMTP_PASSWORD"]
+    conn_str = os.environ["ACS_CONNECTION_STRING"]
+    sender = os.environ["ACS_SENDER_ADDRESS"]
+    client = EmailClient.from_connection_string(conn_str)
 
     sent = 0
     failed = 0
 
-    with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-        server.ehlo()
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-
-        for record in records:
-            to_addr = record.get("email")
-            url = record.get("url")
-            if not to_addr or not url:
-                failed += 1
-                continue
-            try:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = EMAIL_SUBJECT
-                msg["From"] = smtp_user
-                msg["To"] = to_addr
-                msg.attach(MIMEText(EMAIL_BODY_HTML.format(url=url), "html"))
-                server.sendmail(smtp_user, to_addr, msg.as_string())
-                sent += 1
-            except Exception as exc:
-                logging.warning(f"Failed to send to {to_addr}: {exc}")
-                failed += 1
+    for record in records:
+        to_addr = record.get("email")
+        url = record.get("url")
+        if not to_addr or not url:
+            failed += 1
+            continue
+        try:
+            message = {
+                "senderAddress": sender,
+                "recipients": {"to": [{"address": to_addr}]},
+                "content": {
+                    "subject": EMAIL_SUBJECT,
+                    "html": EMAIL_BODY_HTML.format(url=url),
+                },
+            }
+            poller = client.begin_send(message)
+            poller.result()  # wait for send to complete
+            sent += 1
+        except Exception as exc:
+            logging.warning(f"Failed to send to {to_addr}: {exc}")
+            failed += 1
 
     return sent, failed
 
@@ -101,7 +98,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
         except Exception as exc:
             return func.HttpResponse(
-                json.dumps({"error": f"SMTP failure: {exc}"}),
+                json.dumps({"error": f"ACS send failure: {exc}"}),
                 status_code=500, mimetype="application/json"
             )
 
