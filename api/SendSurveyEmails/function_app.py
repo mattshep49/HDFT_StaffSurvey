@@ -37,19 +37,21 @@ EMAIL_BODY_HTML = """\
 """
 
 
-def _send_emails(records: list) -> tuple[int, int]:
+def _send_emails(records: list) -> tuple[int, int, list]:
     conn_str = os.environ["ACS_CONNECTION_STRING"]
     sender = os.environ["ACS_SENDER_ADDRESS"]
     client = EmailClient.from_connection_string(conn_str)
 
     sent = 0
     failed = 0
+    errors = []
 
     for record in records:
         to_addr = record.get("email")
         url = record.get("url")
         if not to_addr or not url:
             failed += 1
+            errors.append({"email": to_addr, "error": "missing email or url"})
             continue
         try:
             message = {
@@ -61,13 +63,18 @@ def _send_emails(records: list) -> tuple[int, int]:
                 },
             }
             poller = client.begin_send(message)
-            poller.result()  # wait for send to complete
-            sent += 1
+            result = poller.result()
+            if result.get("status") == "Succeeded":
+                sent += 1
+            else:
+                failed += 1
+                errors.append({"email": to_addr, "error": str(result)})
         except Exception as exc:
             logging.warning(f"Failed to send to {to_addr}: {exc}")
             failed += 1
+            errors.append({"email": to_addr, "error": str(exc)})
 
-    return sent, failed
+    return sent, failed, errors
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -91,14 +98,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if test_email:
         test_url = "https://calm-mushroom-018f3be03.3.azurestaticapps.net/?token=TEST-TOKEN"
         try:
-            sent, failed = _send_emails([{"email": test_email, "url": test_url}])
+            sent, failed, errors = _send_emails([{"email": test_email, "url": test_url}])
             return func.HttpResponse(
-                json.dumps({"test_email": test_email, "sent": sent, "failed": failed}),
+                json.dumps({"test_email": test_email, "sent": sent, "failed": failed, "errors": errors}),
                 status_code=200, mimetype="application/json"
             )
         except Exception as exc:
             return func.HttpResponse(
-                json.dumps({"error": f"ACS send failure: {exc}"}),
+                json.dumps({"error": f"ACS failure: {exc}"}),
                 status_code=500, mimetype="application/json"
             )
 
@@ -127,16 +134,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
-        sent, failed = _send_emails(records)
+        sent, failed, errors = _send_emails(records)
     except Exception as exc:
-        logging.error(f"SMTP error: {exc}")
+        logging.error(f"ACS error: {exc}")
         return func.HttpResponse(
-            json.dumps({"error": f"SMTP failure: {exc}"}),
+            json.dumps({"error": f"ACS failure: {exc}"}),
             status_code=500, mimetype="application/json"
         )
 
     logging.info(f"Email send complete: sent={sent} failed={failed}")
     return func.HttpResponse(
-        json.dumps({"sent": sent, "failed": failed}),
+        json.dumps({"sent": sent, "failed": failed, "errors": errors}),
         status_code=200, mimetype="application/json"
     )
