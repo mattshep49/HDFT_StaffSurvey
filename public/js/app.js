@@ -823,6 +823,8 @@ class SurveyApp {
      * Show already submitted message
      */
     showInvalidToken() {
+        const landing = document.getElementById('landing');
+        if (landing) landing.classList.add('hidden');
         this.showError(
             'Unrecognised Survey Link',
             'Sorry, this survey link was not recognised or has already been submitted. If you believe this is an error, please contact the People Team.'
